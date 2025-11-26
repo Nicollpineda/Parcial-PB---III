@@ -1,0 +1,327 @@
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+struct Usuario 
+{
+    int idUsuario;
+    string nombre;
+    string correoElectronico;
+    string contrasena;
+    string direccion;
+    string metodoDePago;
+};
+
+struct Producto 
+{
+    int idProducto;
+    string nombre;
+    string descripcion;
+    double precio;
+    int stock;
+};
+
+struct Comentario 
+{
+    int idComentario;
+    string producto;
+    string usuario;
+    string comentario;
+    string fecha;
+};
+
+struct CarritoDeCompras 
+{
+    int idCarrito;
+    vector<Producto> productos;
+    double subtotal;
+    double impuestos;
+};
+
+vector<Usuario> cargarUsuarios(const string &ruta) 
+{
+    vector<Usuario> usuarios;
+    ifstream file(ruta);
+    string linea;
+    getline(file, linea);
+
+    while (getline(file, linea)) 
+    {
+        if (linea.empty()) continue;
+        stringstream ss(linea);
+        string campo;
+        Usuario u;
+
+        getline(ss, campo, ','); u.idUsuario = stoi(campo);
+        getline(ss, u.nombre, ',');
+        getline(ss, u.correoElectronico, ',');
+        getline(ss, u.contrasena, ',');
+        getline(ss, u.direccion, ',');
+        getline(ss, u.metodoDePago, ',');
+
+        usuarios.push_back(u);
+    }
+    return usuarios;
+}
+
+vector<Producto> cargarProductos(const string &ruta) 
+{
+    vector<Producto> productos;
+    ifstream file(ruta);
+    string linea;
+    getline(file, linea);
+
+    while (getline(file, linea)) 
+    {
+        if (linea.empty()) continue;
+        stringstream ss(linea);
+        string campo;
+        Producto p;
+
+        getline(ss, campo, ','); p.idProducto = stoi(campo);
+        getline(ss, p.nombre, ',');
+        getline(ss, p.descripcion, ',');
+        getline(ss, campo, ','); p.precio = stod(campo);
+        getline(ss, campo, ','); p.stock = stoi(campo);
+
+        productos.push_back(p);
+    }
+    return productos;
+}
+
+vector<Comentario> cargarComentarios(const string &ruta) 
+{
+    vector<Comentario> comentarios;
+    ifstream file(ruta);
+    string linea;
+    getline(file, linea);
+
+    while (getline(file, linea)) 
+    {
+        if (linea.empty()) continue;
+        stringstream ss(linea);
+        string campo;
+        Comentario c;
+
+        getline(ss, campo, ','); c.idComentario = stoi(campo);
+        getline(ss, c.producto, ',');
+        getline(ss, c.usuario, ',');
+        getline(ss, c.comentario, ',');
+        getline(ss, c.fecha, ',');
+
+        comentarios.push_back(c);
+    }
+    return comentarios;
+}
+
+Usuario* iniciarSesion(vector<Usuario> &usuarios, const string &correo, const string &clave) 
+{
+    for (auto &u : usuarios) 
+    {
+        if (u.correoElectronico == correo && u.contrasena == clave) 
+        {
+            return &u;
+        }
+    }
+    return nullptr;
+}
+
+void listarProductosBajoStock(vector<Producto> &productos) 
+{
+    for (auto &p : productos) 
+    {
+        if (p.stock < 15) 
+        {
+            cout << p.idProducto << " - " << p.nombre << " (Stock: " << p.stock << ")\n";
+        }
+    }
+}
+
+void listarUsuarios(vector<Usuario> &usuarios) 
+{
+    for (auto &u : usuarios) 
+    {
+        cout << u.idUsuario << " - " << u.nombre << " - "
+             << u.correoElectronico << " - "
+             << u.direccion << " - "
+             << u.metodoDePago << "\n";
+    }
+}
+
+void listarComentariosDesdeFecha(vector<Comentario> &comentarios, const string &fecha) 
+{
+    for (auto &c : comentarios) 
+    {
+        if (c.fecha >= fecha) 
+        {
+            cout << c.idComentario << " - " << c.producto << " - " << c.usuario
+                 << " - " << c.fecha << "\n" << c.comentario << "\n\n";
+        }
+    }
+}
+
+Producto* buscarProductoPorID(vector<Producto> &productos, int id) 
+{
+    for (auto &p : productos) 
+    {
+        if (p.idProducto == id) return &p;
+    }
+    return nullptr;
+}
+
+void agregarAlCarrito(CarritoDeCompras &carrito, vector<Producto> &productos, int id) 
+{
+    Producto* p = buscarProductoPorID(productos, id);
+    if (!p) return;
+    carrito.productos.push_back(*p);
+    carrito.subtotal += p->precio;
+    carrito.impuestos = carrito.subtotal * 0.19;
+}
+
+void mostrarCarrito(CarritoDeCompras &carrito) 
+{
+    for (auto &p : carrito.productos) 
+    {
+        cout << p.idProducto << " - " << p.nombre << " - " << p.precio << "\n";
+    }
+    cout << "Subtotal: " << carrito.subtotal << "\n";
+    cout << "Impuestos: " << carrito.impuestos << "\n";
+}
+
+void guardarCarrito(CarritoDeCompras &carrito) 
+{
+    ofstream f("Carrito.txt");
+    for (auto &p : carrito.productos) 
+    {
+        f << p.idProducto << "," << p.nombre << "," << p.precio << "\n";
+    }
+}
+/*********************************************************************************/
+
+void cincoMenorStock(vector<Producto> productos)//productos con menor stock
+{
+    sort(productos.begin(), productos.end(),
+         [](Producto a, Producto b) { return a.stock < b.stock; });
+
+    cout << "\n--- 5 PRODUCTOS CON MENOR STOCK ---\n";
+    for (int i = 0; i < 5 && i < productos.size(); i++) 
+    {
+        cout << productos[i].idProducto << " - "
+             << productos[i].nombre << " - Stock: "
+             << productos[i].stock << endl;
+    }
+}
+
+void cantidadComentariosFecha(vector<Comentario> &comentarios) // contador de comentarios de fecha exacta 
+{
+    string fecha;
+    cout << "Ingrese la fecha (YYYY-MM-DD): ";
+    getline(cin, fecha);
+
+    int contador = 0;
+
+    for (auto &c : comentarios) {
+        if (c.fecha == fecha) {
+            contador++;
+        }
+    }
+
+    cout << "\n--- CANTIDAD DE COMENTARIOS EN ESA FECHA ---\n";
+    cout << "Fecha: " << fecha << "\n";
+    cout << "Número de comentarios: " << contador << "\n";
+}
+
+
+void precioMaxMin(vector<Producto> &productos) //precio maxi y mini
+{
+    if (productos.empty()) 
+    {
+        cout << "No hay productos.\n";
+        return;
+    }
+
+    double maxP = productos[0].precio;
+    double minP = productos[0].precio;
+
+    for (auto &p : productos) {
+        if (p.precio > maxP) maxP = p.precio;
+        if (p.precio < minP) minP = p.precio;
+    }
+
+    cout << "\n--- PRECIOS MAXIMO Y MINIMO ---\n";
+    cout << "MAXIMO: " << maxP << endl;
+    cout << "MINIMO: " << minP << endl;
+}
+
+int main() 
+{
+    vector<Usuario> usuarios = cargarUsuarios("Usuarios.txt");
+    vector<Producto> productos = cargarProductos("Productos.txt");
+    vector<Comentario> comentarios = cargarComentarios("Comentarios.txt");
+
+    CarritoDeCompras carrito;
+    carrito.idCarrito = 1;
+    carrito.subtotal = 0;
+    carrito.impuestos = 0;
+
+    string correo, clave;
+    cout << "Correo: ";
+    getline(cin, correo);
+    cout << "Clave: ";
+    getline(cin, clave);
+
+    Usuario* u = iniciarSesion(usuarios, correo, clave);
+    if (!u) 
+    {
+        cout << "Usuario invalido\n";
+        return 0;
+    }
+    
+    int op;
+    do 
+    {
+        cout << "\n========== MENU PRINCIPAL ==========\n";
+        cout << "1. Productos bajo stock\n";
+        cout << "2. Comentarios desde fecha\n";
+        cout << "3. Listar usuarios\n";
+        cout << "4. Agregar al carrito\n";
+        cout << "5. Ver carrito\n";
+        cout << "6. Guardar carrito\n";
+        cout << "7. Salir\n";
+        cout << "8. 5 productos con menor stock\n";
+        cout << "9. Cantidad de comentarios por fecha\n";
+        cout << "10. Precio maximo y minimo\n";
+        cout << "Seleccione una opción: ";
+        cin >> op;
+        cin.ignore();
+
+        if (op == 1) listarProductosBajoStock(productos);
+        if (op == 2) 
+        {
+            string fecha;
+            cout << "Fecha (YYYY-MM-DD): ";
+            getline(cin, fecha);
+            listarComentariosDesdeFecha(comentarios, fecha);
+        }
+        if (op == 3) listarUsuarios(usuarios);
+        if (op == 4) 
+        {
+            int id;
+            cout << "ID producto: ";
+            cin >> id;
+            cin.ignore();
+            agregarAlCarrito(carrito, productos, id);
+        }
+        if (op == 5) mostrarCarrito(carrito);
+        if (op == 6) guardarCarrito(carrito);
+        if (op == 8) cincoMenorStock(productos);
+        if (op == 9) cantidadComentariosFecha(comentarios);
+        if (op == 10) precioMaxMin(productos);
+
+    } while (op != 7);
+
+    return 0;
+}
